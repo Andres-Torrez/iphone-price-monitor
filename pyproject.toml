@@ -1,0 +1,17 @@
+[project]
+name = "iphone-price-monitor"
+version = "0.1.0"
+description = "Modular price monitor with scraping, storage and HTML reporting"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx",
+  "selectolax",
+  "pydantic",
+  "jinja2"
+]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest",
+  "ruff"
+]
