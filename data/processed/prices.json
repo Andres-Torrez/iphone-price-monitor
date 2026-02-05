@@ -1,0 +1,68 @@
+[
+  {
+    "timestamp": "2026-02-05T22:02:21.919986Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_15",
+    "title": "iPhone 15 (128GB)",
+    "sku": "IPH15-128",
+    "currency": "EUR",
+    "price_eur": 799.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg"
+  },
+  {
+    "timestamp": "2026-02-05T22:02:21.919986Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_16",
+    "title": "iPhone 16 (128GB)",
+    "sku": "IPH16-128",
+    "currency": "EUR",
+    "price_eur": 899.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg"
+  },
+  {
+    "timestamp": "2026-02-05T22:02:21.919986Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_17",
+    "title": "iPhone 17 (128GB)",
+    "sku": "IPH17-128",
+    "currency": "EUR",
+    "price_eur": 999.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg"
+  },
+  {
+    "timestamp": "2026-02-05T22:02:53.215699Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_15",
+    "title": "iPhone 15 (128GB)",
+    "sku": "IPH15-128",
+    "currency": "EUR",
+    "price_eur": 799.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg"
+  },
+  {
+    "timestamp": "2026-02-05T22:02:53.215699Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_16",
+    "title": "iPhone 16 (128GB)",
+    "sku": "IPH16-128",
+    "currency": "EUR",
+    "price_eur": 899.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg"
+  },
+  {
+    "timestamp": "2026-02-05T22:02:53.215699Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_17",
+    "title": "iPhone 17 (128GB)",
+    "sku": "IPH17-128",
+    "currency": "EUR",
+    "price_eur": 999.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg"
+  }
+]
