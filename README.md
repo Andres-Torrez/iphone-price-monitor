@@ -1,53 +1,113 @@
-# ✅ Step 2 — Implement Source Adapter (GitHub Pages Catalog)
+# 🟦 Step 3 — Implement the real scraper and persist historical data
 
-## Objective
+## 🎯 Goal
 
-Implement the first real scraping source using a controlled website that is stable and scraping-safe.
+The goal of this step is to build a real, modular, and reproducible scraper that:
 
-We will scrape 3 product pages:
+- Scrapes product data from a scraping-safe website  
+  https://andres-torrez.github.io/iphone-catalog/
+- Monitors the following models:
+  - iPhone 15  
+  - iPhone 16  
+  - iPhone 17
+- Extracts structured data:
+  - product title  
+  - model identifier  
+  - price (EUR)  
+  - SKU  
+  - product URL  
+  - direct product image URL
+- Normalizes European price formats
+- Maintains a historical price dataset
+- Exports data to:
+  - JSON (source of truth)
+  - CSV (Excel / Sheets friendly)
+- Includes automated tests to guarantee data quality
 
-- `/iphone-15.html`  
-- `/iphone-16.html`  
-- `/iphone-17.html`
-
-Each page contains stable `data-testid` selectors:
-
-- `product-title`  
-- `product-price`  
-- `product-image`  
-- `product-model`  
-- `product-sku`
-
----
-
-## Architecture introduced in this step
-
-We use a **Source Adapter** pattern:
-
-```
-Source Adapter → normalized ProductSnapshot list → (next steps: storage/report)
-```
-
-This allows adding new websites later without rewriting the pipeline.
+At the end of this step, the project transitions from a demo to a production-ready data pipeline.
 
 ---
 
-## 2.1 Data model
+## ⚙️ Project configuration
 
-**File:** `scraper/models.py`  
-**What it does:** defines a typed structure for scraped data using Pydantic.
+To support local development, testing, and reproducibility, the following configuration was added to `pyproject.toml`:
+
+```toml
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["scraper"]
+```
+
+### Why this configuration?
+
+- Defines explicit development dependencies  
+- Enables editable installs for local development  
+- Ensures the scraper package is correctly discoverable  
+- Improves portability and reuse of the project  
+
+---
+
+## 📦 Installation and execution
+
+```bash
+uv sync
+uv pip install -e .
+```
+
+Run the full pipeline:
+
+```bash
+uv run python -m scraper.cli run
+```
+
+Run tests:
+
+```bash
+uv run pytest -q
+```
+
+---
+
+## 🧠 Architecture introduced in Step 3
+
+```
+HTML Source
+   ↓
+Normalization
+   ↓
+Deduplication
+   ↓
+JSON / CSV Storage
+```
+
+Each responsibility is isolated and testable.
+
+---
+
+## 📂 Files and code (Step 3)
+
+---
+
+### `scraper/models.py`
+
+**Purpose:**  
+Defines the canonical data model used across the entire pipeline.
 
 ```python
 from __future__ import annotations
-
 from datetime import datetime
-from pydantic import BaseModel, HttpUrl, Field
-
+from pydantic import BaseModel, Field, HttpUrl
 
 class ProductSnapshot(BaseModel):
     timestamp: datetime
     source: str = Field(default="github_pages_catalog")
-    model: str  # iphone_15 | iphone_16 | iphone_17
+    model: str
     title: str
     sku: str | None = None
     currency: str = "EUR"
@@ -58,23 +118,21 @@ class ProductSnapshot(BaseModel):
 
 ---
 
-## 2.2 HTTP client
+### `scraper/http_client.py`
 
-**File:** `scraper/http_client.py`  
-**What it does:** downloads HTML with a stable User-Agent and reasonable timeout.
+**Purpose:**  
+Centralized HTTP layer for downloading HTML pages.
 
 ```python
 from __future__ import annotations
-
 import httpx
-
 
 def get_html(url: str, timeout_s: float = 20.0) -> str:
     headers = {
-        "User-Agent": "iphone-price-monitor/1.0 (+https://github.com/your-handle)",
-        "Accept": "text/html,application/xhtml+xml",
+        "User-Agent": "iphone-price-monitor/1.0",
+        "Accept": "text/html",
     }
-    with httpx.Client(headers=headers, timeout=timeout_s, follow_redirects=True) as client:
+    with httpx.Client(headers=headers, timeout=timeout_s) as client:
         r = client.get(url)
         r.raise_for_status()
         return r.text
@@ -82,189 +140,192 @@ def get_html(url: str, timeout_s: float = 20.0) -> str:
 
 ---
 
-## 2.3 Normalization (price parsing)
+### `scraper/sources/base.py`
 
-**File:** `scraper/pipeline/normalize.py`  
-**What it does:** converts strings like `799,00 €` into `799.00` float.
+**Purpose:**  
+Defines the source adapter contract.
 
 ```python
-from __future__ import annotations
+from abc import ABC, abstractmethod
+from scraper.models import ProductSnapshot
 
+class Source(ABC):
+    @abstractmethod
+    def fetch(self) -> list[ProductSnapshot]:
+        pass
+```
 
+---
+
+### `scraper/pipeline/normalize.py`
+
+**Purpose:**  
+Normalizes European price strings into floats.
+
+```python
 def parse_price_eur(text: str) -> float:
-    """
-    Convert strings like '799,00 €' or '799 €' into float 799.00
-    """
-    cleaned = (
-        text.replace("€", "")
-        .replace("\xa0", " ")
-        .strip()
-    )
-    # remove thousand separators if any, and normalize decimal comma to dot
+    cleaned = text.replace("€", "").replace("\xa0", "").strip()
     cleaned = cleaned.replace(".", "").replace(",", ".")
-    # keep only digits and dot
-    cleaned = "".join(ch for ch in cleaned if ch.isdigit() or ch == ".")
-    if not cleaned:
-        raise ValueError(f"Could not parse price from: {text!r}")
     return float(cleaned)
 ```
 
 ---
 
-## 2.4 Source contract
+### `scraper/sources/github_pages_catalog.py`
 
-**File:** `scraper/sources/base.py`  
-**What it does:** defines a common interface for all sources (adapters).
-
-```python
-from __future__ import annotations
-
-from abc import ABC, abstractmethod
-
-from scraper.models import ProductSnapshot
-
-
-class Source(ABC):
-    @abstractmethod
-    def fetch(self) -> list[ProductSnapshot]:
-        """Return a list of snapshots (one per product/model)."""
-        raise NotImplementedError
-```
-
----
-
-## 2.5 GitHub Pages adapter implementation
-
-**File:** `scraper/sources/github_pages_catalog.py`  
-**What it does:** fetches each product page, extracts title/price/image/model/sku and returns normalized snapshots.
+**Purpose:**  
+Implements the real scraper for the GitHub Pages catalog.
 
 ```python
-from __future__ import annotations
-
 from datetime import datetime, timezone
 from urllib.parse import urljoin
-
 from selectolax.parser import HTMLParser
-
 from scraper.http_client import get_html
-from scraper.models import ProductSnapshot
 from scraper.pipeline.normalize import parse_price_eur
+from scraper.models import ProductSnapshot
 from scraper.sources.base import Source
 
-
 class GitHubPagesCatalogSource(Source):
-    def __init__(self, base_url: str) -> None:
-        # base_url example: "https://andres-torrez.github.io/iphone-catalog/"
+    def __init__(self, base_url: str):
         self.base_url = base_url if base_url.endswith("/") else base_url + "/"
 
     def fetch(self) -> list[ProductSnapshot]:
-        product_paths = ["iphone-15.html", "iphone-16.html", "iphone-17.html"]
-        out: list[ProductSnapshot] = []
+        paths = ["iphone-15.html", "iphone-16.html", "iphone-17.html"]
         now = datetime.now(timezone.utc)
+        results = []
 
-        for path in product_paths:
-            product_url = urljoin(self.base_url, path)
-            html = get_html(product_url)
-            tree = HTMLParser(html)
+        for path in paths:
+            url = urljoin(self.base_url, path)
+            tree = HTMLParser(get_html(url))
 
-            title = self._text(tree, '[data-testid="product-title"]')
-            model = self._text(tree, '[data-testid="product-model"]')
-            price_text = self._text(tree, '[data-testid="product-price"]')
-            sku = self._text_optional(tree, '[data-testid="product-sku"]')
-
-            img_src = self._attr(tree, '[data-testid="product-image"]', "src")
-            image_url = urljoin(self.base_url, img_src)
-
-            price_eur = parse_price_eur(price_text)
-
-            out.append(
+            results.append(
                 ProductSnapshot(
                     timestamp=now,
-                    model=model,
-                    title=title,
-                    sku=sku,
-                    price_eur=price_eur,
-                    product_url=product_url,
-                    image_url=image_url,
+                    model=tree.css_first('[data-testid="product-model"]').text(),
+                    title=tree.css_first('[data-testid="product-title"]').text(),
+                    price_eur=parse_price_eur(
+                        tree.css_first('[data-testid="product-price"]').text()
+                    ),
+                    sku=tree.css_first('[data-testid="product-sku"]').text(),
+                    product_url=url,
+                    image_url=urljoin(
+                        self.base_url,
+                        tree.css_first('[data-testid="product-image"]').attributes["src"],
+                    ),
                 )
             )
-
-        return out
-
-    @staticmethod
-    def _text(tree: HTMLParser, css: str) -> str:
-        node = tree.css_first(css)
-        if node is None:
-            raise ValueError(f"Missing required element: {css}")
-        return node.text(strip=True)
-
-    @staticmethod
-    def _text_optional(tree: HTMLParser, css: str) -> str | None:
-        node = tree.css_first(css)
-        return node.text(strip=True) if node else None
-
-    @staticmethod
-    def _attr(tree: HTMLParser, css: str, attr: str) -> str:
-        node = tree.css_first(css)
-        if node is None:
-            raise ValueError(f"Missing required element: {css}")
-        val = node.attributes.get(attr)
-        if not val:
-            raise ValueError(f"Missing attribute {attr!r} in {css}")
-        return val
+        return results
 ```
 
 ---
 
-## 2.6 CLI command to validate scraping
+### `scraper/pipeline/dedupe.py`
 
-**File:** `scraper/cli.py`  
-**What it does:** adds a `scrape` command that prints the snapshots to stdout as JSON.
+**Purpose:**  
+Removes duplicate snapshots from the historical dataset.
 
 ```python
-from __future__ import annotations
+from scraper.models import ProductSnapshot
 
-import argparse
+def dedupe_snapshots(rows: list[ProductSnapshot]) -> list[ProductSnapshot]:
+    seen = set()
+    output = []
+
+    for r in rows:
+        key = (r.timestamp.isoformat(), r.model, r.price_eur)
+        if key not in seen:
+            seen.add(key)
+            output.append(r)
+
+    return sorted(output, key=lambda x: (x.timestamp, x.model))
+```
+
+---
+
+### `scraper/storage/json_store.py`
+
+**Purpose:**  
+JSON persistence layer (source of truth).
+
+```python
+from pathlib import Path
 import json
-from datetime import datetime, timezone
 
+def read_json_if_exists(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    return json.loads(path.read_text())
+
+def write_json(path: Path, data: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2))
+```
+
+---
+
+### `scraper/storage/csv_store.py`
+
+**Purpose:**  
+CSV export for easy inspection and analysis.
+
+```python
+import csv
+from pathlib import Path
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+```
+
+---
+
+### `scraper/pipeline/run.py`
+
+**Purpose:**  
+Orchestrates the full scraping pipeline.
+
+```python
+from pathlib import Path
 from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
+from scraper.pipeline.dedupe import dedupe_snapshots
+from scraper.storage.json_store import read_json_if_exists, write_json
+from scraper.storage.csv_store import write_csv
 
+def run_pipeline(base_url: str, out_json: Path, out_csv: Path):
+    source = GitHubPagesCatalogSource(base_url)
+    new_data = [s.model_dump() for s in source.fetch()]
+    existing = read_json_if_exists(out_json)
+    combined = dedupe_snapshots(existing + new_data)
 
-def cmd_healthcheck() -> None:
-    now = datetime.now(timezone.utc).isoformat()
-    print(f"[ok] scraper CLI is working | utc={now}")
+    write_json(out_json, combined)
+    write_csv(out_csv, combined)
+```
 
+---
 
-def cmd_scrape(base_url: str) -> None:
-    src = GitHubPagesCatalogSource(base_url=base_url)
-    snapshots = src.fetch()
-    payload = [s.model_dump(mode="json") for s in snapshots]
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+### `scraper/cli.py`
 
+**Purpose:**  
+Command-line interface for reproducible execution.
 
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="scraper", description="iPhone Price Monitor CLI")
-    sub = parser.add_subparsers(dest="command", required=True)
+```python
+import argparse
+from pathlib import Path
+from scraper.pipeline.run import run_pipeline
 
-    sub.add_parser("healthcheck", help="Validate the CLI runs")
-
-    p_scrape = sub.add_parser("scrape", help="Scrape product snapshots from the configured source")
-    p_scrape.add_argument(
-        "--base-url",
-        default="https://andres-torrez.github.io/iphone-catalog/",
-        help="Base URL of the catalog site (must end with / or will be normalized).",
-    )
-
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("run", nargs="?")
     args = parser.parse_args()
 
-    if args.command == "healthcheck":
-        cmd_healthcheck()
-    elif args.command == "scrape":
-        cmd_scrape(base_url=args.base_url)
-    else:
-        raise SystemExit("Unknown command")
-
+    run_pipeline(
+        "https://andres-torrez.github.io/iphone-catalog/",
+        Path("data/processed/prices.json"),
+        Path("data/processed/prices.csv"),
+    )
 
 if __name__ == "__main__":
     main()
@@ -272,36 +333,22 @@ if __name__ == "__main__":
 
 ---
 
-## Run
+## 🧪 Tests
 
-```bash
-uv run python -m scraper.cli scrape
-```
+Tests validate price normalization and deduplication to ensure data integrity over time.
 
 ---
 
-## Expected result
+## ✅ What was achieved in Step 3
 
-A JSON array with 3 objects (`iphone_15`, `iphone_16`, `iphone_17`), including:
+By completing this step, the project now:
 
-- title  
-- price_eur  
-- image_url  
-- sku  
-- model  
-- timestamp  
-
----
-
-## ✅ Result of Step 2
-
-At the end of this step we have:
-
-- A working modular source adapter (`GitHubPagesCatalogSource`)  
-- Typed data model (`ProductSnapshot`)  
-- Normalization of prices  
-- A CLI command that validates scraping output  
-
-**Next step:** persist the snapshots into CSV and JSON as a historical dataset.
+✔ Scrapes real product data  
+✔ Uses a clean, extensible architecture  
+✔ Maintains historical price data  
+✔ Exports CSV and JSON  
+✔ Includes automated tests  
+✔ Runs with a single reproducible command  
+✔ Is ready for automation, Docker, and reporting  
 
 ---
