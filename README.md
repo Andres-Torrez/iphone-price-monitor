@@ -1,327 +1,417 @@
-# 📱 iPhone Price Monitor
+# 🟦 Step 3 — Implement the real scraper and persist historical data
 
-Proyecto profesional de scraping diseñado para demostrar:
+## 🎯 Goal
 
-- Arquitectura limpia y modular  
-- Documentación paso a paso (reproducible)  
-- Buenas prácticas con uv (sin pip)  
-- Pipeline completo: scrapeo → histórico → reporte HTML  
-- Base lista para Docker + automatización  
+The goal of this step is to build a real, modular, and reproducible scraper that:
 
-Este repo está pensado como proyecto de portfolio, no como un script suelto.
+- Scrapes product data from a scraping-safe website  
+  https://andres-torrez.github.io/iphone-catalog/
+- Monitors the following models:
+  - iPhone 15  
+  - iPhone 16  
+  - iPhone 17
+- Extracts structured data:
+  - product title  
+  - model identifier  
+  - price (EUR)  
+  - SKU  
+  - product URL  
+  - direct product image URL
+- Normalizes European price formats
+- Maintains a historical price dataset
+- Exports data to:
+  - JSON (source of truth)
+  - CSV (Excel / Sheets friendly)
+- Includes automated tests to guarantee data quality
 
----
-
-## 🎯 Objetivo
-
-Monitorizar el precio de iPhone 15, 16 y 17, guardar un histórico y generar un HTML con timeline de cambios.
-
-Fuente de datos (segura para scraping, controlada por nosotros):  
-https://andres-torrez.github.io/iphone-catalog/
-
----
-
-## 🧭 Roadmap (lo que construiremos)
-
-Este proyecto se desarrolla por hitos (y se controla en el Kanban):
-
-- ✅ Repo + Kanban + Issues + README base  
-- ✅ Scaffold con uv + estructura de carpetas  
-- ✅ CLI mínimo (healthcheck)  
-- ⏳ Scraper modular por fuentes (sources)  
-- ⏳ Exportación CSV y JSON  
-- ⏳ Descarga de imágenes del producto  
-- ⏳ Generación de HTML dashboard con timeline  
-- ⏳ Tests + lint  
-- ⏳ Docker  
-- ⏳ Automatización (cron o GitHub Actions)
+At the end of this step, the project transitions from a demo to a production‑ready data pipeline.
 
 ---
 
-## 🧱 Estructura del proyecto (actual)
+## ⚙️ Project configuration
 
-```text
-iphone-price-monitor/
-│
-├── scraper/                     # Core application
-│   ├── cli.py                   # Entry point (commands)
-│   ├── config.py                # Global configuration
-│   ├── models.py                # Data models (Pydantic)
-│   ├── http_client.py           # HTTP utilities
-│   │
-│   ├── sources/                 # Website adapters (scrapers)
-│   │   ├── base.py
-│   │   └── github_pages_catalog.py
-│   │
-│   ├── pipeline/                # Data processing pipeline
-│   │   ├── run.py
-│   │   ├── normalize.py
-│   │   └── dedupe.py
-│   │
-│   ├── storage/                 # Data persistence
-│   │   ├── csv_store.py
-│   │   └── json_store.py
-│   │
-│   ├── media/                   # Image download logic
-│   │   └── images.py
-│   │
-│   └── report/                  # HTML generation
-│       ├── render.py
-│       └── templates/
-│           └── index.html.j2
-│
-├── data/
-│   ├── raw/                     # Raw responses (optional)
-│   └── processed/               # CSV / JSON history
-│
-├── reports/                     # Generated HTML dashboard
-│
-├── assets/
-│   ├── images/                  # Downloaded product images
-│   └── docs/                    # Screenshots and diagrams
-│
-├── tests/                       # Pytest tests
-│
-├── .github/workflows/           # CI and scheduled runs
-│
-├── pyproject.toml               # Project definition (uv)
-└── README.md
-```
-
----
-
-## ⚙️ pyproject.toml (lo que tenemos y qué significa)
-
-Actualmente tu pyproject.toml contiene:
+To support local development, testing, and reproducibility, the following configuration was added to `pyproject.toml`:
 
 ```toml
-[project]
-name = "iphone-price-monitor"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "httpx>=0.28.1",
-    "jinja2>=3.1.6",
-    "pydantic>=2.12.5",
-    "selectolax>=0.4.6",
-]
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py312"
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
-
-[dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-    "ruff>=0.14.14",
-]
+[tool.setuptools]
+packages = ["scraper"]
 ```
 
-### ✅ Explicación rápida
+### Why this configuration?
 
-- `[project]` define el paquete (nombre, versión, python requerido)  
-- `dependencies` son librerías necesarias para correr el scraper  
-- `dependency-groups.dev` son dependencias solo para desarrollo (tests/lint)  
-- `ruff` es el linter/formateador para mantener código limpio y consistente  
-
-Nota: tu `requires-python = ">=3.13"` y `target-version = "py312"` están desalineados.  
-Más adelante lo vamos a dejar consistente (recomendación: Python 3.12 o 3.13, pero ambos alineados).
+- Defines explicit development dependencies  
+- Enables editable installs for local development  
+- Ensures the scraper package is correctly discoverable  
+- Improves portability and reuse of the project  
 
 ---
 
-## 🚀 Paso 1 — Instalación del entorno con uv
-
-### 1.1 Instalar uv  
-Guía oficial: https://docs.astral.sh/uv/
-
-### 1.2 Inicializar el proyecto
+## 📦 Installation and execution
 
 ```bash
-uv init
+uv sync
+uv pip install -e .
 ```
 
-### 1.3 Fijar versión de Python (recomendado)
-
-Ejemplo (si usas 3.12):
-
-```bash
-uv python pin 3.12
-```
-
-### 1.4 Instalar dependencias
-
-```bash
-uv add httpx selectolax pydantic jinja2
-uv add --dev pytest ruff
-```
-
----
-
-## 📁 Paso 2 — Crear estructura de carpetas y archivos
-
-Creamos la arquitectura del repo (modular, escalable) con:
-
-```bash
-mkdir -p scraper/sources scraper/storage scraper/report/templates scraper/pipeline scraper/media
-mkdir -p data/raw data/processed reports assets/images assets/docs tests .github/workflows
-```
-
-Crear archivos base:
-
-```bash
-touch scraper/__init__.py scraper/cli.py scraper/config.py scraper/models.py scraper/http_client.py
-touch scraper/sources/__init__.py scraper/sources/base.py scraper/sources/github_pages_catalog.py
-touch scraper/storage/__init__.py scraper/storage/csv_store.py scraper/storage/json_store.py
-touch scraper/report/__init__.py scraper/report/render.py scraper/report/templates/index.html.j2
-touch scraper/pipeline/__init__.py scraper/pipeline/run.py scraper/pipeline/normalize.py scraper/pipeline/dedupe.py
-touch scraper/media/__init__.py scraper/media/images.py
-touch tests/test_normalize.py tests/test_dedupe.py
-touch .gitignore
-```
-
----
-
-## 🧪 Paso 3 — Implementar y probar el CLI (scraper/cli.py)
-
-Este archivo es el punto de entrada: recibe comandos desde terminal.
-
-### ✅ Contenido actual de scraper/cli.py (tal cual lo tienes)
-
-```python
-from __future__ import annotations
-
-import argparse
-from datetime import UTC, datetime
-
-
-def cmd_healthcheck() -> None:
-    now = datetime.now(UTC).isoformat()
-    print(f"[ok] scraper CLI is working | utc={now}")
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        prog="scraper",
-        description="iPhone Price Monitor CLI",
-    )
-    sub = parser.add_subparsers(dest="command", required=True)
-
-    sub.add_parser("healthcheck", help="Validate the CLI runs")
-
-    args = parser.parse_args()
-
-    if args.command == "healthcheck":
-        cmd_healthcheck()
-    else:
-        raise SystemExit("Unknown command")
-
-
-if __name__ == "__main__":
-    main()
-```
----
-## ¿Qué hace cada parte?
-
-- argparse crea comandos tipo: healthcheck, run, etc.
-- cmd_healthcheck() imprime un mensaje con la hora UTC para confirmar que todo corre
-- main() decide qué comando ejecutar
-- python -m scraper.cli ... ejecuta este módulo como programa
----
-
-### Probar el CLI
-
-```bash
-uv run python -m scraper.cli healthcheck
-```
-
-Salida esperada:
-
-```
-[ok] scraper CLI is working | utc=2026-02-05T...
-```
-
----
-
-## 🧹 Paso 4 — Lint con Ruff
-
-```bash
-uv run ruff check .
-```
-
----
-
-## ▶️ ¿Qué pasará cuando ejecutemos run?
-
-Más adelante añadiremos el comando:
+Run the full pipeline:
 
 ```bash
 uv run python -m scraper.cli run
 ```
 
-Ese comando hará este flujo:
+Run tests:
 
-```
-cli.py
-  ↓
-pipeline/run.py           (orquesta el proceso)
-  ↓
-sources/...               (scraping)
-  ↓
-pipeline/normalize.py     (limpia y normaliza precios)
-  ↓
-pipeline/dedupe.py        (evita duplicados)
-  ↓
-storage/csv_store.py      (guarda CSV histórico)
-storage/json_store.py     (guarda JSON histórico)
-  ↓
-media/images.py           (descarga imágenes del producto)
-  ↓
-report/render.py          (genera HTML final)
-  ↓
-reports/index.html
+```bash
+uv run pytest -q
 ```
 
 ---
 
-## 📂 ¿Dónde se guardarán los resultados?
+## 🧠 Architecture introduced in Step 3
 
-| Resultado            | Carpeta                      |
-|---------------------|------------------------------|
-| CSV histórico       | data/processed/prices.csv    |
-| JSON histórico      | data/processed/prices.json   |
-| Imágenes descargadas| assets/images/               |
-| HTML final          | reports/index.html           |
+```
+HTML Source
+   ↓
+Normalization
+   ↓
+Deduplication
+   ↓
+JSON / CSV Storage
+```
 
----
-
-## ✅ Commits (lo que ya hicimos)
-
-- Scaffold del proyecto con uv  
-- Estructura modular  
-- CLI healthcheck funcionando  
-- Configuración de Ruff en pyproject.toml  
-- README documentando todo paso a paso  
+Each responsibility is isolated and testable.
 
 ---
 
-## 🧩 Próximo paso (Issue: feat(scraper))
+# 📂 Files and Code (Step 3)
 
-Ahora que la base está lista, el siguiente hito será:
+Below is each numbered file, with:
 
-### Implementar el scraper real para:
-
-- iPhone 15  
-- iPhone 16  
-- iPhone 17  
-
-Desde:  
-https://andres-torrez.github.io/iphone-catalog/
+- **Correct file path**  
+- **Accurate Purpose summary**  
+- **Your original code untouched**
 
 ---
 
-Si quieres, puedo dejarlo con índice automático, badges, o incluso un diseño más visual.
+## 1) `scraper/storage/csv_store.py`
+
+**Purpose:**  
+Writes the historical dataset to CSV using a fixed column schema. Ensures reproducible, Excel‑friendly exports.
+
+**Path:**  
+`scraper/storage/csv_store.py`
+
+```python
+from __future__ import annotations
+
+from pathlib import Path
+import csv
+
+from scraper.models import ProductSnapshot
+
+CSV_COLUMNS = [
+    "timestamp",
+    "source",
+    "model",
+    "title",
+    "sku",
+    "currency",
+    "price_eur",
+    "product_url",
+    "image_url",
+]
+
+def write_csv(path: Path, rows: list[ProductSnapshot]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
+        w.writeheader()
+        for r in rows:
+            d = r.model_dump(mode="json")
+            w.writerow({k: d.get(k) for k in CSV_COLUMNS})
+```
+
+---
+
+## 2) `scraper/http_client.py`
+
+**Purpose:**  
+Provides a stable HTTP client for downloading HTML pages with a custom User‑Agent and timeout.
+
+**Path:**  
+`scraper/http_client.py`
+
+```python
+from __future__ import annotations
+import httpx
+
+def get_html(url: str, timeout_s: float = 20.0) -> str:
+    headers = {
+        "User-Agent": "iphone-price-monitor/1.0",
+        "Accept": "text/html",
+    }
+    with httpx.Client(headers=headers, timeout=timeout_s) as client:
+        r = client.get(url)
+        r.raise_for_status()
+        return r.text
+```
+
+---
+
+## 3) `scraper/pipeline/dedupe.py`
+
+**Purpose:**  
+Removes duplicate snapshots based on `(timestamp, source, model, price_eur)` and returns a stable, sorted list.
+
+**Path:**  
+`scraper/pipeline/dedupe.py`
+
+```python
+from __future__ import annotations
+
+from scraper.models import ProductSnapshot
+
+def dedupe_snapshots(rows: list[ProductSnapshot]) -> list[ProductSnapshot]:
+    """
+    Remove duplicates by (timestamp, source, model, price_eur).
+    """
+    seen: set[tuple] = set()
+    out: list[ProductSnapshot] = []
+
+    for r in rows:
+        key = (r.timestamp.isoformat(), r.source, r.model, r.price_eur)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+
+    # stable sort by timestamp then model
+    out.sort(key=lambda x: (x.timestamp, x.model))
+    return out
+```
+
+---
+
+## 4) `scraper/pipeline/run.py`
+
+**Purpose:**  
+Runs the full pipeline: fetch → merge with history → dedupe → write JSON + CSV.
+
+**Path:**  
+`scraper/pipeline/run.py`
+
+```python
+from __future__ import annotations
+
+from datetime import datetime
+from pathlib import Path
+
+from scraper.models import ProductSnapshot
+from scraper.pipeline.dedupe import dedupe_snapshots
+from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
+from scraper.storage.csv_store import write_csv
+from scraper.storage.json_store import read_json_if_exists, write_json
+
+def _dict_to_snapshot(d: dict) -> ProductSnapshot:
+    # Pydantic reconstructs the datetime correctly if ISO formatted
+    return ProductSnapshot.model_validate(d)
+
+def run_pipeline(
+    base_url: str,
+    out_csv: Path,
+    out_json: Path,
+) -> list[ProductSnapshot]:
+    src = GitHubPagesCatalogSource(base_url=base_url)
+    new_rows = src.fetch()
+
+    existing_dicts = read_json_if_exists(out_json)
+    existing_rows = [_dict_to_snapshot(d) for d in existing_dicts]
+
+    combined = existing_rows + new_rows
+    combined = dedupe_snapshots(combined)
+
+    write_json(out_json, combined)
+    write_csv(out_csv, combined)
+
+    return combined
+```
+
+---
+
+## 5) `scraper/cli.py` — Add the `run` command
+
+**Purpose:**  
+Adds a CLI command that runs the full pipeline and stores historical data.
+
+**Path:**  
+`scraper/cli.py`
+
+```python
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+
+from scraper.pipeline.run import run_pipeline
+from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
+
+DEFAULT_BASE_URL = "https://andres-torrez.github.io/iphone-catalog/"
+DEFAULT_CSV = Path("data/processed/prices.csv")
+DEFAULT_JSON = Path("data/processed/prices.json")
+
+def cmd_healthcheck() -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[ok] scraper CLI is working | utc={now}")
+
+def cmd_scrape(base_url: str) -> None:
+    src = GitHubPagesCatalogSource(base_url=base_url)
+    snapshots = src.fetch()
+    payload = [s.model_dump(mode="json") for s in snapshots]
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+def cmd_run(base_url: str, out_csv: Path, out_json: Path) -> None:
+    combined = run_pipeline(base_url=base_url, out_csv=out_csv, out_json=out_json)
+
+    print(f"[ok] stored snapshots: {len(combined)}")
+    print(f"[ok] csv:  {out_csv}")
+    print(f"[ok] json: {out_json}")
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="scraper", description="iPhone Price Monitor CLI")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("healthcheck", help="Validate the CLI runs")
+
+    p_scrape = sub.add_parser("scrape", help="Scrape product snapshots and print JSON")
+    p_scrape.add_argument("--base-url", default=DEFAULT_BASE_URL)
+
+    p_run = sub.add_parser("run", help="Scrape + store history (CSV/JSON)")
+    p_run.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    p_run.add_argument("--out-csv", default=str(DEFAULT_CSV))
+    p_run.add_argument("--out-json", default=str(DEFAULT_JSON))
+
+    args = parser.parse_args()
+
+    if args.command == "healthcheck":
+        cmd_healthcheck()
+    elif args.command == "scrape":
+        cmd_scrape(base_url=args.base_url)
+    elif args.command == "run":
+        cmd_run(
+            base_url=args.base_url,
+            out_csv=Path(args.out_csv),
+            out_json=Path(args.out_json),
+        )
+    else:
+        raise SystemExit("Unknown command")
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## 6) Run the pipeline and verify files
+
+```bash
+uv run python -m scraper.cli run
+```
+
+---
+
+# 🧪 Tests
+
+Tests validate price normalization and deduplication to ensure data integrity over time.
+
+---
+
+## 7) `tests/test_normalize.py`
+
+**Purpose:**  
+Ensures European price formats are parsed correctly.
+
+**Path:**  
+`tests/test_normalize.py`
+
+```python
+from scraper.pipeline.normalize import parse_price_eur
+
+def test_parse_price_eur_comma() -> None:
+    assert parse_price_eur("799,00 €") == 799.00
+
+def test_parse_price_eur_no_decimals() -> None:
+    assert parse_price_eur("999 €") == 999.0
+```
+
+---
+
+## `tests/test_dedupe.py`
+
+**Purpose:**  
+Ensures duplicate snapshots are removed correctly.
+
+**Path:**  
+`tests/test_dedupe.py`
+
+```python
+from datetime import datetime, timezone
+
+from scraper.models import ProductSnapshot
+from scraper.pipeline.dedupe import dedupe_snapshots
+
+
+def test_dedupe_by_key() -> None:
+    ts = datetime(2026, 2, 5, tzinfo=timezone.utc)
+    a = ProductSnapshot(
+        timestamp=ts,
+        model="iphone_15",
+        title="iPhone 15",
+        sku="X",
+        price_eur=799.0,
+        product_url="https://example.com/a",
+        image_url="https://example.com/a.png",
+    )
+    b = ProductSnapshot(
+        timestamp=ts,
+        model="iphone_15",
+        title="iPhone 15",
+        sku="X",
+        price_eur=799.0,
+        product_url="https://example.com/a",
+        image_url="https://example.com/a.png",
+    )
+    out = dedupe_snapshots([a, b])
+    assert len(out) == 1
+```
+
+---
+
+Run tests:
+
+```bash
+uv run pytest -q
+```
+
+## ✅ What was achieved in Step 3
+
+By completing this step, the project now:
+
+✔ Scrapes real product data  
+✔ Uses a clean, extensible architecture  
+✔ Maintains historical price data  
+✔ Exports CSV and JSON  
+✔ Includes automated tests  
+✔ Runs with a single reproducible command  
+✔ Is ready for automation, Docker, and reporting  
+
+---
