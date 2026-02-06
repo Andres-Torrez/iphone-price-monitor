@@ -8,7 +8,8 @@
     "currency": "EUR",
     "price_eur": 799.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg",
+    "image_path": null
   },
   {
     "timestamp": "2026-02-05T22:02:21.919986Z",
@@ -19,7 +20,8 @@
     "currency": "EUR",
     "price_eur": 899.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg",
+    "image_path": null
   },
   {
     "timestamp": "2026-02-05T22:02:21.919986Z",
@@ -30,7 +32,8 @@
     "currency": "EUR",
     "price_eur": 999.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg",
+    "image_path": null
   },
   {
     "timestamp": "2026-02-05T22:02:53.215699Z",
@@ -41,7 +44,8 @@
     "currency": "EUR",
     "price_eur": 799.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg",
+    "image_path": null
   },
   {
     "timestamp": "2026-02-05T22:02:53.215699Z",
@@ -52,7 +56,8 @@
     "currency": "EUR",
     "price_eur": 899.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg",
+    "image_path": null
   },
   {
     "timestamp": "2026-02-05T22:02:53.215699Z",
@@ -63,6 +68,115 @@
     "currency": "EUR",
     "price_eur": 999.0,
     "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
-    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg"
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:35:54.914367Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_15",
+    "title": "iPhone 15 (128GB)",
+    "sku": "IPH15-128",
+    "currency": "EUR",
+    "price_eur": 799.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:35:54.914367Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_16",
+    "title": "iPhone 16 (128GB)",
+    "sku": "IPH16-128",
+    "currency": "EUR",
+    "price_eur": 899.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:35:54.914367Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_17",
+    "title": "iPhone 17 (128GB)",
+    "sku": "IPH17-128",
+    "currency": "EUR",
+    "price_eur": 999.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:42:17.398985Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_15",
+    "title": "iPhone 15 (128GB)",
+    "sku": "IPH15-128",
+    "currency": "EUR",
+    "price_eur": 799.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:42:17.398985Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_16",
+    "title": "iPhone 16 (128GB)",
+    "sku": "IPH16-128",
+    "currency": "EUR",
+    "price_eur": 899.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T10:42:17.398985Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_17",
+    "title": "iPhone 17 (128GB)",
+    "sku": "IPH17-128",
+    "currency": "EUR",
+    "price_eur": 999.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg",
+    "image_path": null
+  },
+  {
+    "timestamp": "2026-02-06T12:37:58.248141Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_15",
+    "title": "iPhone 15 (128GB)",
+    "sku": "IPH15-128",
+    "currency": "EUR",
+    "price_eur": 799.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-15.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone15.jpg",
+    "image_path": "assets\\images\\iphone_15.png"
+  },
+  {
+    "timestamp": "2026-02-06T12:37:58.248141Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_16",
+    "title": "iPhone 16 (128GB)",
+    "sku": "IPH16-128",
+    "currency": "EUR",
+    "price_eur": 899.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-16.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone16.jpg",
+    "image_path": "assets\\images\\iphone_16.png"
+  },
+  {
+    "timestamp": "2026-02-06T12:37:58.248141Z",
+    "source": "github_pages_catalog",
+    "model": "iphone_17",
+    "title": "iPhone 17 (128GB)",
+    "sku": "IPH17-128",
+    "currency": "EUR",
+    "price_eur": 999.0,
+    "product_url": "https://andres-torrez.github.io/iphone-catalog/iphone-17.html",
+    "image_url": "https://andres-torrez.github.io/iphone-catalog/images/iphone17.jpg",
+    "image_path": "assets\\images\\iphone_17.png"
   }
 ]

@@ -15,3 +15,5 @@ class ProductSnapshot(BaseModel):
     product_url: HttpUrl
     image_url: HttpUrl
 
+    # NEW (Step 4): local cached image path
+    image_path: str | None = None

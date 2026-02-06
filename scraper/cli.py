@@ -11,6 +11,8 @@ from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
 DEFAULT_BASE_URL = "https://andres-torrez.github.io/iphone-catalog/"
 DEFAULT_CSV = Path("data/processed/prices.csv")
 DEFAULT_JSON = Path("data/processed/prices.json")
+DEFAULT_IMAGES_DIR = Path("assets/images")
+
 
 
 def cmd_healthcheck() -> None:
@@ -24,12 +26,24 @@ def cmd_scrape(base_url: str) -> None:
     payload = [s.model_dump(mode="json") for s in snapshots]
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
-def cmd_run(base_url: str, out_csv: Path, out_json: Path) -> None:
-    combined = run_pipeline(base_url=base_url, out_csv=out_csv, out_json=out_json)
+def cmd_run(
+    base_url: str,
+    out_csv: Path,
+    out_json: Path,
+    images_dir: Path,
+) -> None:
+    combined = run_pipeline(
+        base_url=base_url,
+        out_csv=out_csv,
+        out_json=out_json,
+        images_dir=images_dir,
+    )
 
     print(f"[ok] stored snapshots: {len(combined)}")
     print(f"[ok] csv:  {out_csv}")
     print(f"[ok] json: {out_json}")
+    print(f"[ok] images cached in: {images_dir}")
+
 
 
 def main() -> None:
@@ -45,6 +59,7 @@ def main() -> None:
     p_run.add_argument("--base-url", default=DEFAULT_BASE_URL)
     p_run.add_argument("--out-csv", default=str(DEFAULT_CSV))
     p_run.add_argument("--out-json", default=str(DEFAULT_JSON))
+    p_run.add_argument("--images-dir", default=str(DEFAULT_IMAGES_DIR))
 
     args = parser.parse_args()
 
@@ -57,6 +72,7 @@ def main() -> None:
             base_url=args.base_url,
             out_csv=Path(args.out_csv),
             out_json=Path(args.out_json),
+            images_dir=Path(args.images_dir),
         )
     else:
         raise SystemExit("Unknown command")

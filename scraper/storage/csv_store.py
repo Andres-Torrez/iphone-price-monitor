@@ -16,6 +16,7 @@ CSV_COLUMNS = [
     "price_eur",
     "product_url",
     "image_url",
+    "image_path",  # NEW
 ]
 
 
