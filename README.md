@@ -1,5 +1,3 @@
----
-
 # 🟦 Step 3 — Implement the real scraper and persist historical data (Issue #4)
 
 ## 🎯 Goal
@@ -406,5 +404,3 @@ By completing this step, the project now:
 - ✔ Includes automated tests  
 - ✔ Runs with a single command  
 - ✔ Is ready for media caching and reporting  
-
----
