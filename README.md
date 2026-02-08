@@ -54,7 +54,7 @@ No production code is modified.
 
 ---
 
-# 7.1 — Test price normalization
+# 6.1 — Test price normalization
 
 ## What we verify
 
@@ -104,7 +104,7 @@ def test_parse_price_eur_invalid() -> None:
 
 ---
 
-# 7.2 — Test snapshot deduplication
+# 6.2 — Test snapshot deduplication
 
 ## What we verify
 
