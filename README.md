@@ -5,13 +5,13 @@
 Automate the pipeline execution in two environments:
 
 1) **Local (developer mode, visible in VS Code)**
-   - Runs every 2 minutes for fast iteration
+   - Runs every 2 minutes for fast iteration  
    - Executes: dependency sync → tests → pipeline
 
 2) **Remote (GitHub Actions)**
-   - Runs on a schedule (minimum practical frequency ~5 minutes)
-   - Executes: dependency sync → tests → pipeline
-   - Uploads generated outputs as artifacts (CSV/JSON/HTML/images)
+   - Runs on a schedule (minimum practical frequency ~5 minutes)  
+   - Executes: dependency sync → tests → pipeline  
+   - Uploads generated outputs as artifacts (CSV/JSON/HTML/images)  
    - Also supports manual runs via `workflow_dispatch`
 
 This makes the project feel “alive”: it updates itself and validates data integrity continuously.
@@ -24,9 +24,9 @@ This makes the project feel “alive”: it updates itself and validates data in
 - We can run every **2 minutes** because it’s fully controlled by the developer machine.
 
 ### GitHub Actions
-- GitHub scheduled workflows are **not designed for 2-minute intervals**.
-- The minimum practical interval is **~5 minutes**, and timing may drift due to queueing.
-- Scheduled workflows only run from the **default branch** (usually `main`).
+- GitHub scheduled workflows are **not designed for 2-minute intervals**.  
+- The minimum practical interval is **~5 minutes**, and timing may drift due to queueing.  
+- Scheduled workflows only run from the **default branch** (usually `main`).  
 
 For immediate testing on GitHub, use the manual trigger: **Run workflow**.
 
@@ -66,28 +66,27 @@ while ($true) {
     Write-Host "Sleeping 120 seconds..."
     Start-Sleep -Seconds 120
 }
-```
 
-Run it (VS Code terminal)
+# Run it (VS Code terminal)
 powershell -ExecutionPolicy Bypass -File scripts/dev_loop.ps1
 
+# Stop it anytime with Ctrl + C.
+```
 
-Stop it anytime with Ctrl + C.
+---
 
-8.2 Remote automation (GitHub Actions)
-File: .github/workflows/scheduled.yml
+## 8.2 Remote automation (GitHub Actions)
+
+### File: `.github/workflows/scheduled.yml`
 
 This workflow:
 
-syncs dependencies with uv
+- syncs dependencies with uv  
+- runs tests  
+- runs the pipeline  
+- uploads outputs as artifacts  
 
-runs tests
-
-runs the pipeline
-
-uploads outputs as artifacts
-
-```
+```yaml
 name: scheduled-pipeline
 
 on:
@@ -130,24 +129,24 @@ jobs:
             assets/images
           if-no-files-found: warn
 ```
-🔎 How to verify it works
-Manual (instant)
 
-GitHub → Actions → scheduled-pipeline → Run workflow
+---
 
-Scheduled
+## 🔎 How to verify it works
 
-Wait a few minutes and check the Actions list.
-Note: schedule runs only from the default branch (main).
+### Manual (instant)
+GitHub → Actions → **scheduled-pipeline** → **Run workflow**
 
-✅ What we achieved
+### Scheduled
+Wait a few minutes and check the Actions list.  
+Note: schedule runs only from the default branch (`main`).
 
-✔ Fast local iteration loop (every 2 minutes) visible in VS Code
+---
 
-✔ Automated validation via tests before each run
+## ✅ What we achieved
 
-✔ Scheduled remote runs in GitHub Actions
-
-✔ Reproducible outputs downloadable as artifacts
-
-✔ Professional automation workflow without auto-committing generated files
+✔ Fast local iteration loop (every 2 minutes) visible in VS Code  
+✔ Automated validation via tests before each run  
+✔ Scheduled remote runs in GitHub Actions  
+✔ Reproducible outputs downloadable as artifacts  
+✔ Professional automation workflow without auto-committing generated files  
