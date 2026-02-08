@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from scraper.models import ProductSnapshot
 from scraper.pipeline.dedupe import dedupe_snapshots
@@ -17,7 +17,7 @@ def _snap(ts: datetime, model: str, price: float) -> ProductSnapshot:
 
 
 def test_dedupe_removes_exact_duplicates() -> None:
-    ts = datetime(2026, 2, 5, tzinfo=timezone.utc)
+    ts = datetime(2026, 2, 5, tzinfo=UTC)
     a = _snap(ts, "iphone_15", 799.0)
     b = _snap(ts, "iphone_15", 799.0)
     out = dedupe_snapshots([a, b])
@@ -25,7 +25,7 @@ def test_dedupe_removes_exact_duplicates() -> None:
 
 
 def test_dedupe_keeps_price_changes() -> None:
-    ts = datetime(2026, 2, 5, tzinfo=timezone.utc)
+    ts = datetime(2026, 2, 5, tzinfo=UTC)
     a = _snap(ts, "iphone_15", 799.0)
     b = _snap(ts, "iphone_15", 749.0)  # price change
     out = dedupe_snapshots([a, b])
@@ -33,8 +33,8 @@ def test_dedupe_keeps_price_changes() -> None:
 
 
 def test_dedupe_is_stably_sorted() -> None:
-    ts1 = datetime(2026, 2, 5, tzinfo=timezone.utc)
-    ts2 = datetime(2026, 2, 6, tzinfo=timezone.utc)
+    ts1 = datetime(2026, 2, 5, tzinfo=UTC)
+    ts2 = datetime(2026, 2, 6, tzinfo=UTC)
 
     rows = [
         _snap(ts2, "iphone_16", 999.0),
@@ -45,4 +45,3 @@ def test_dedupe_is_stably_sorted() -> None:
 
     # sorted by (timestamp, model)
     assert [r.model for r in out] == ["iphone_15", "iphone_17", "iphone_16"]
-

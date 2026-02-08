@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import csv
+from pathlib import Path
 
 from scraper.models import ProductSnapshot
-
 
 CSV_COLUMNS = [
     "timestamp",

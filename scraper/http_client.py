@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import time
 import random
-import httpx
+import time
 
+import httpx
 
 DEFAULT_HEADERS = {
     "User-Agent": "iphone-price-monitor/1.0 (+https://github.com/your-handle)",
@@ -31,13 +31,18 @@ def get_html(url: str, timeout_s: float = 20.0, retries: int = 4) -> str:
                 r.raise_for_status()
                 return r.text
 
-        except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError, httpx.ReadTimeout) as exc:
+        except (
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.RemoteProtocolError,
+            httpx.ReadTimeout,
+        ) as exc:
             last_exc = exc
             if attempt >= retries:
                 break
 
             # exponential backoff + jitter
-            sleep_s = (2 ** attempt) * 0.6 + random.random() * 0.4
+            sleep_s = (2**attempt) * 0.6 + random.random() * 0.4
             time.sleep(sleep_s)
 
     raise RuntimeError(f"Failed to fetch HTML after {retries} retries: {url}") from last_exc

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -56,7 +56,6 @@ def prepare_context(rows: list[dict]) -> dict:
         latest[model] = {**current, "delta": delta}
 
     return {"by_model": dict(by_model), "latest": latest, "last_updated": last_updated}
-
 
 
 def render_report(prices_json: Path, out_html: Path, templates_dir: Path) -> None:

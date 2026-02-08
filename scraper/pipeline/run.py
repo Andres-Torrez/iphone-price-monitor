@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 
+from scraper.media.images import ensure_cached_image
 from scraper.models import ProductSnapshot
 from scraper.pipeline.dedupe import dedupe_snapshots
 from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
 from scraper.storage.csv_store import write_csv
 from scraper.storage.json_store import read_json_if_exists, write_json
-from scraper.media.images import ensure_cached_image 
 
 
 def _dict_to_snapshot(d: dict) -> ProductSnapshot:

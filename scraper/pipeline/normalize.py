@@ -5,11 +5,7 @@ def parse_price_eur(text: str) -> float:
     """
     Convert strings like '799,00 €' or '799 €' into float 799.00
     """
-    cleaned = (
-        text.replace("€", "")
-        .replace("\xa0", " ")
-        .strip()
-    )
+    cleaned = text.replace("€", "").replace("\xa0", " ").strip()
     # remove thousand separators if any, and normalize decimal comma to dot
     cleaned = cleaned.replace(".", "").replace(",", ".")
     # keep only digits and dot

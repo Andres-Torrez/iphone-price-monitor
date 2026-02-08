@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -19,7 +19,7 @@ class GitHubPagesCatalogSource(Source):
     def fetch(self) -> list[ProductSnapshot]:
         product_paths = ["iphone-15.html", "iphone-16.html", "iphone-17.html"]
         out: list[ProductSnapshot] = []
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for path in product_paths:
             product_url = urljoin(self.base_url, path)

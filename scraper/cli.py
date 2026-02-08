@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
 from scraper.pipeline.run import run_pipeline
-from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
 from scraper.report.render import render_report
+from scraper.sources.github_pages_catalog import GitHubPagesCatalogSource
 
 DEFAULT_BASE_URL = "https://andres-torrez.github.io/iphone-catalog/"
 DEFAULT_CSV = Path("data/processed/prices.csv")
@@ -18,7 +18,7 @@ DEFAULT_TEMPLATES_DIR = Path("scraper/report/templates")
 
 
 def cmd_healthcheck() -> None:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     print(f"[ok] scraper CLI is working | utc={now}")
 
 
@@ -27,6 +27,7 @@ def cmd_scrape(base_url: str) -> None:
     snapshots = src.fetch()
     payload = [s.model_dump(mode="json") for s in snapshots]
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
 
 def cmd_run(
     base_url: str,
@@ -41,17 +42,16 @@ def cmd_run(
         images_dir=images_dir,
     )
     render_report(
-    prices_json=out_json,
-    out_html=DEFAULT_REPORT_HTML,
-    templates_dir=DEFAULT_TEMPLATES_DIR,
-)
+        prices_json=out_json,
+        out_html=DEFAULT_REPORT_HTML,
+        templates_dir=DEFAULT_TEMPLATES_DIR,
+    )
 
     print(f"[ok] report generated: {DEFAULT_REPORT_HTML}")
     print(f"[ok] stored snapshots: {len(combined)}")
     print(f"[ok] csv:  {out_csv}")
     print(f"[ok] json: {out_json}")
     print(f"[ok] images cached in: {images_dir}")
-
 
 
 def main() -> None:

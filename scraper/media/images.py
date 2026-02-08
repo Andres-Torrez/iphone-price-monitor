@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
+import random
 import re
+import time
+from pathlib import Path
 
 import httpx
-
-import time
-import random
-
 
 
 def _safe_filename(name: str) -> str:
@@ -43,15 +41,19 @@ def download_image(url: str, out_path: Path, timeout_s: float = 30.0, retries: i
                 out_path.write_bytes(r.content)
                 return
 
-        except (httpx.ConnectError, httpx.ReadError, httpx.RemoteProtocolError, httpx.ReadTimeout) as exc:
+        except (
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.RemoteProtocolError,
+            httpx.ReadTimeout,
+        ) as exc:
             last_exc = exc
             if attempt >= retries:
                 break
-            sleep_s = (2 ** attempt) * 0.6 + random.random() * 0.4
+            sleep_s = (2**attempt) * 0.6 + random.random() * 0.4
             time.sleep(sleep_s)
 
     raise RuntimeError(f"Failed to download image after {retries} retries: {url}") from last_exc
-
 
 
 def ensure_cached_image(image_url: str, model: str, images_dir: Path) -> Path:
