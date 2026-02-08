@@ -1,41 +1,84 @@
-# ✅ Step 2 — Implement Source Adapter (GitHub Pages Catalog)
+# 🟦 Step 2 — Implement Source Adapter (GitHub Pages Catalog) (Issue #3)
 
-## Objective
+## 🎯 Goal
 
-Implement the first real scraping source using a controlled website that is stable and scraping-safe.
+In this step, we implement the **first real data source** using a controlled, stable, scraping‑safe website.
 
-We will scrape 3 product pages:
+We scrape three product pages:
 
-- `/iphone-15.html`  
-- `/iphone-16.html`  
+- `/iphone-15.html`
+- `/iphone-16.html`
 - `/iphone-17.html`
 
-Each page contains stable `data-testid` selectors:
+Each page exposes predictable `data-testid` selectors:
 
-- `product-title`  
-- `product-price`  
-- `product-image`  
-- `product-model`  
+- `product-title`
+- `product-price`
+- `product-image`
+- `product-model`
 - `product-sku`
 
----
-
-## Architecture introduced in this step
-
-We use a **Source Adapter** pattern:
-
-```
-Source Adapter → normalized ProductSnapshot list → (next steps: storage/report)
-```
-
-This allows adding new websites later without rewriting the pipeline.
+The objective is to produce **normalized, typed snapshots** ready for storage in the next step.
 
 ---
 
-## 2.1 Data model
+## 🧠 Architecture introduced
 
-**File:** `scraper/models.py`  
-**What it does:** defines a typed structure for scraped data using Pydantic.
+We apply a **Source Adapter pattern**:
+
+```
+Source Adapter
+↓
+Normalized ProductSnapshot list
+↓
+(next steps → storage & reporting)
+```
+
+### Why this matters
+
+- New shops can be added later  
+- The pipeline remains unchanged  
+- Each source is isolated, testable, and maintainable  
+
+---
+
+## ⚙️ Expected output
+
+After running:
+
+```bash
+uv run python -m scraper.cli scrape
+```
+
+You should obtain a JSON list with one snapshot per model containing:
+
+- title  
+- price in EUR (float)  
+- SKU  
+- product URL  
+- image URL  
+- timestamp  
+- model identifier  
+
+No files are written yet — this step only validates extraction.
+
+---
+
+## 📂 Files introduced in Step 2
+
+Each file below includes:
+
+- Purpose  
+- Path  
+- Code (unchanged)
+
+---
+
+# 1) `scraper/models.py`
+
+**Purpose:**  
+Defines a typed schema for scraped data using Pydantic.  
+This ensures validation, consistency, and predictable structure across the pipeline.
 
 ```python
 from __future__ import annotations
@@ -58,10 +101,10 @@ class ProductSnapshot(BaseModel):
 
 ---
 
-## 2.2 HTTP client
+# 2) `scraper/http_client.py`
 
-**File:** `scraper/http_client.py`  
-**What it does:** downloads HTML with a stable User-Agent and reasonable timeout.
+**Purpose:**  
+Handles HTML downloads with a defined User‑Agent and timeout.
 
 ```python
 from __future__ import annotations
@@ -82,10 +125,10 @@ def get_html(url: str, timeout_s: float = 20.0) -> str:
 
 ---
 
-## 2.3 Normalization (price parsing)
+# 3) `scraper/pipeline/normalize.py`
 
-**File:** `scraper/pipeline/normalize.py`  
-**What it does:** converts strings like `799,00 €` into `799.00` float.
+**Purpose:**  
+Converts European price strings into numeric floats.
 
 ```python
 from __future__ import annotations
@@ -100,9 +143,7 @@ def parse_price_eur(text: str) -> float:
         .replace("\xa0", " ")
         .strip()
     )
-    # remove thousand separators if any, and normalize decimal comma to dot
     cleaned = cleaned.replace(".", "").replace(",", ".")
-    # keep only digits and dot
     cleaned = "".join(ch for ch in cleaned if ch.isdigit() or ch == ".")
     if not cleaned:
         raise ValueError(f"Could not parse price from: {text!r}")
@@ -111,10 +152,10 @@ def parse_price_eur(text: str) -> float:
 
 ---
 
-## 2.4 Source contract
+# 4) `scraper/sources/base.py`
 
-**File:** `scraper/sources/base.py`  
-**What it does:** defines a common interface for all sources (adapters).
+**Purpose:**  
+Defines the interface every source adapter must implement.
 
 ```python
 from __future__ import annotations
@@ -133,10 +174,10 @@ class Source(ABC):
 
 ---
 
-## 2.5 GitHub Pages adapter implementation
+# 5) `scraper/sources/github_pages_catalog.py`
 
-**File:** `scraper/sources/github_pages_catalog.py`  
-**What it does:** fetches each product page, extracts title/price/image/model/sku and returns normalized snapshots.
+**Purpose:**  
+Implements the adapter that extracts data from the GitHub Pages catalog.
 
 ```python
 from __future__ import annotations
@@ -214,12 +255,13 @@ class GitHubPagesCatalogSource(Source):
         return val
 ```
 
+
 ---
 
-## 2.6 CLI command to validate scraping
+# 6) `scraper/cli.py`
 
-**File:** `scraper/cli.py`  
-**What it does:** adds a `scrape` command that prints the snapshots to stdout as JSON.
+**Purpose:**  
+Adds commands to validate scraping independently from storage.
 
 ```python
 from __future__ import annotations
@@ -270,9 +312,10 @@ if __name__ == "__main__":
     main()
 ```
 
+
 ---
 
-## Run
+# ▶️ Run Step 2
 
 ```bash
 uv run python -m scraper.cli scrape
@@ -280,9 +323,15 @@ uv run python -m scraper.cli scrape
 
 ---
 
-## Expected result
+## ✅ Expected result
 
-A JSON array with 3 objects (`iphone_15`, `iphone_16`, `iphone_17`), including:
+You should see a JSON array with three objects:
+
+- `iphone_15`
+- `iphone_16`
+- `iphone_17`
+
+Each containing:
 
 - title  
 - price_eur  
@@ -293,15 +342,29 @@ A JSON array with 3 objects (`iphone_15`, `iphone_16`, `iphone_17`), including:
 
 ---
 
-## ✅ Result of Step 2
+# 🧪 Validation philosophy
 
-At the end of this step we have:
+At this stage we verify:
 
-- A working modular source adapter (`GitHubPagesCatalogSource`)  
-- Typed data model (`ProductSnapshot`)  
-- Normalization of prices  
-- A CLI command that validates scraping output  
+- selectors work  
+- parsing works  
+- normalization works  
+- the schema is correct  
 
-**Next step:** persist the snapshots into CSV and JSON as a historical dataset.
+We intentionally **do not store anything yet**.  
+Persistence comes in **Step 3**.
 
 ---
+
+# ✅ What was achieved in Step 2
+
+By completing this step, the project now has:
+
+- ✔ A working modular source adapter  
+- ✔ A typed data contract  
+- ✔ Price normalization  
+- ✔ A CLI command to validate scraping  
+- ✔ A solid foundation for historical storage  
+
+
+Si quieres, sigo con Step 1 o preparo un README final unificado y profesional.
