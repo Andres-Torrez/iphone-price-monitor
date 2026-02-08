@@ -1,4 +1,4 @@
-# 🟦 8 — Dockerize scraper and report generation
+# 🟦 7 — Dockerize scraper and report generation
 
 ## 🎯 Goal
 
