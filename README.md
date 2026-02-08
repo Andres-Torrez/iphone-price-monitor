@@ -1,4 +1,4 @@
-# 🟦 9 — Automation: local dev loop + GitHub Actions scheduled runs
+# 🟦 8 — Automation: local dev loop + GitHub Actions scheduled runs
 
 ## 🎯 Goal
 
