@@ -1,109 +1,151 @@
-# 🟦 7 — Dockerize scraper and report generation
+# 🟦 8 — Automation: local dev loop + GitHub Actions scheduled runs
 
 ## 🎯 Goal
 
-Make the entire pipeline portable and reproducible.
+Automate the pipeline execution in two environments:
 
-After this milestone, anyone can run the scraper + report generation without installing Python or uv locally.
+1) **Local (developer mode, visible in VS Code)**
+   - Runs every 2 minutes for fast iteration
+   - Executes: dependency sync → tests → pipeline
 
----
+2) **Remote (GitHub Actions)**
+   - Runs on a schedule (minimum practical frequency ~5 minutes)
+   - Executes: dependency sync → tests → pipeline
+   - Uploads generated outputs as artifacts (CSV/JSON/HTML/images)
+   - Also supports manual runs via `workflow_dispatch`
 
-## ✅ What Docker enables
-
-- consistent execution across machines  
-- easier onboarding  
-- CI/CD readiness  
-- deployment portability  
-
----
-
-## 📂 Files added
-
-- `Dockerfile`
-- `.dockerignore`
+This makes the project feel “alive”: it updates itself and validates data integrity continuously.
 
 ---
 
-## 🐳 Dockerfile
+## 🧠 Important note on scheduling frequency
 
-```dockerfile
-FROM python:3.12-slim
+### Local
+- We can run every **2 minutes** because it’s fully controlled by the developer machine.
 
-WORKDIR /app
+### GitHub Actions
+- GitHub scheduled workflows are **not designed for 2-minute intervals**.
+- The minimum practical interval is **~5 minutes**, and timing may drift due to queueing.
+- Scheduled workflows only run from the **default branch** (usually `main`).
 
-RUN pip install --no-cache-dir uv
-
-COPY pyproject.toml README.md ./
-COPY scraper ./scraper
-
-RUN uv sync
-
-COPY . .
-RUN uv pip install -e .
-
-CMD ["uv", "run", "python", "-m", "scraper.cli", "run"]
-```
+For immediate testing on GitHub, use the manual trigger: **Run workflow**.
 
 ---
 
-## 🗂️ .dockerignore
+## 9.1 Local automation (Windows / VS Code)
 
-```
-.git
-.venv
-__pycache__
-*.pyc
-iphone_price_monitor.egg-info
-data
-reports
-assets/images
-```
+### File: `scripts/dev_loop.ps1`
 
----
+Runs an infinite loop every 120 seconds:
 
-## ▶️ Build
+- `uv sync`
+- `pytest`
+- `scraper.cli run`
 
-```bash
-docker build -t iphone-monitor .
-```
+```powershell
+$ErrorActionPreference = "Stop"
 
-## ▶️ Run (write outputs to your local folder)
+while ($true) {
+    Write-Host "======================================="
+    Write-Host "DEV LOOP @ $(Get-Date -Format u)"
+    Write-Host "======================================="
 
-```bash
-docker run --rm -v "$(pwd):/app" iphone-monitor
-```
+    Write-Host "[1/3] Sync deps..."
+    uv sync
 
-This will generate/update:
+    Write-Host "[2/3] Running tests..."
+    uv run pytest -q
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[x] Tests failed. Fix before next run." -ForegroundColor Red
+        exit 1
+    }
 
-```
-data/processed/prices.csv
-data/processed/prices.json
-assets/images/*.png
-reports/index.html
-```
+    Write-Host "[3/3] Running pipeline..."
+    uv run python -m scraper.cli run
 
----
+    Write-Host "Sleeping 120 seconds..."
+    Start-Sleep -Seconds 120
+}
 
-## 🧯 Troubleshooting
+Run it (VS Code terminal)
+powershell -ExecutionPolicy Bypass -File scripts/dev_loop.ps1
 
-### ❗ "Dockerfile: no such file or directory"
 
-Docker must be executed from the repository root (where Dockerfile exists):
+Stop it anytime with Ctrl + C.
 
-```bash
-ls Dockerfile pyproject.toml
-```
+9.2 Remote automation (GitHub Actions)
+File: .github/workflows/scheduled.yml
 
-### ❗ "package directory 'scraper' does not exist"
+This workflow:
 
-Ensure the Dockerfile copies the `scraper/` folder **before** running `uv sync`.
+syncs dependencies with uv
 
----
+runs tests
 
-## ✅ What we achieved
+runs the pipeline
 
-- ✔ One-command reproducible execution  
-- ✔ Environment independence  
-- ✔ Outputs produced locally via volume mount  
-- ✔ Ready for CI, cron, and cloud deployments  
+uploads outputs as artifacts
 
+name: scheduled-pipeline
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync deps
+        run: uv sync
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Run pipeline
+        run: uv run python -m scraper.cli run
+
+      - name: Upload artifacts (CSV/JSON/HTML/images)
+        uses: actions/upload-artifact@v4
+        with:
+          name: iphone-monitor-output
+          path: |
+            data/processed/prices.csv
+            data/processed/prices.json
+            reports/index.html
+            reports/styles.css
+            assets/images
+          if-no-files-found: warn
+
+🔎 How to verify it works
+Manual (instant)
+
+GitHub → Actions → scheduled-pipeline → Run workflow
+
+Scheduled
+
+Wait a few minutes and check the Actions list.
+Note: schedule runs only from the default branch (main).
+
+✅ What we achieved
+
+✔ Fast local iteration loop (every 2 minutes) visible in VS Code
+
+✔ Automated validation via tests before each run
+
+✔ Scheduled remote runs in GitHub Actions
+
+✔ Reproducible outputs downloadable as artifacts
+
+✔ Professional automation workflow without auto-committing generated files

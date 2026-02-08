@@ -1,13 +1,12 @@
-name: Scheduled Run
+name: scheduled-pipeline
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
   schedule:
-    # Runs daily at 08:00 UTC
-    - cron: "0 8 * * *"
+    - cron: "*/5 * * * *"
 
 jobs:
-  run-pipeline:
+  run:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,10 +19,8 @@ jobs:
       - name: Install Python
         run: uv python install 3.12
 
-      - name: Install dependencies
-        run: |
-          uv sync
-          uv pip install -e .
+      - name: Sync deps
+        run: uv sync
 
       - name: Run tests
         run: uv run pytest -q
@@ -31,11 +28,14 @@ jobs:
       - name: Run pipeline
         run: uv run python -m scraper.cli run
 
-      - name: Upload artifacts
+      - name: Upload artifacts (outputs)
         uses: actions/upload-artifact@v4
         with:
-          name: iphone-price-monitor-output
+          name: iphone-monitor-output
           path: |
-            data/processed/**
-            assets/images/**
-            reports/**
+            data/processed/prices.csv
+            data/processed/prices.json
+            reports/index.html
+            reports/styles.css
+            assets/images
+          if-no-files-found: warn
