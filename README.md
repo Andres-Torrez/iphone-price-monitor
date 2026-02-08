@@ -1,152 +1,253 @@
-# 🟦 8 — Automation: local dev loop + GitHub Actions scheduled runs
+# 🗺️ Build Roadmap
 
-## 🎯 Goal
-
-Automate the pipeline execution in two environments:
-
-1) **Local (developer mode, visible in VS Code)**
-   - Runs every 2 minutes for fast iteration  
-   - Executes: dependency sync → tests → pipeline
-
-2) **Remote (GitHub Actions)**
-   - Runs on a schedule (minimum practical frequency ~5 minutes)  
-   - Executes: dependency sync → tests → pipeline  
-   - Uploads generated outputs as artifacts (CSV/JSON/HTML/images)  
-   - Also supports manual runs via `workflow_dispatch`
-
-This makes the project feel “alive”: it updates itself and validates data integrity continuously.
+El proyecto evoluciona mediante hitos incrementales y reproducibles.  
+Cada paso añade una capacidad real de producción.
 
 ---
 
-## 🧠 Important note on scheduling frequency
+## 📌 Resumen de los 8 pasos
 
-### Local
-- We can run every **2 minutes** because it’s fully controlled by the developer machine.
+1. **Project setup, environment & CLI foundation**  
+2. **Source adapter (GitHub Pages catalog)**  
+3. **Historical persistence (CSV/JSON pipeline)**  
+4. **Download & cache product images locally**  
+5. **HTML dashboard with price timeline (Chart.js)**  
+6. **Automated tests (normalization & dedupe)**  
+7. **Dockerized execution**  
+8. **Automation: local dev loop + GitHub Actions scheduled runs**
 
-### GitHub Actions
-- GitHub scheduled workflows are **not designed for 2-minute intervals**.  
-- The minimum practical interval is **~5 minutes**, and timing may drift due to queueing.  
-- Scheduled workflows only run from the **default branch** (usually `main`).  
-
-For immediate testing on GitHub, use the manual trigger: **Run workflow**.
+Ahora bajamos al detalle 👇
 
 ---
 
-## 8.1 Local automation (Windows / VS Code)
+# 1 — Project Setup, Environment & CLI Foundation  
+**Issue:** #1–#2
 
-### File: `scripts/dev_loop.ps1`
+### 🎯 Goal  
+Inicializar un proyecto Python profesional usando uv, definir la estructura y asegurar que el CLI funciona.
 
-Runs an infinite loop every 120 seconds:
+### ▶️ Run  
+```bash
+uv run python -m scraper.cli healthcheck
+```
 
-- `uv sync`
-- `pytest`
-- `scraper.cli run`
+### 📦 What was introduced
+- project layout  
+- dependency management  
+- minimal CLI  
+- reproducible environment  
+
+---
+
+# 2 — Source Adapter (GitHub Pages Catalog)  
+**Issue:** #3
+
+### 🎯 Goal  
+Scrapear páginas controladas y devolver snapshots estructurados.
+
+**Source:**  
+👉 https://andres-torrez.github.io/iphone-catalog/
+
+### ▶️ Run  
+```bash
+uv run python -m scraper.cli scrape
+```
+
+### 📤 Output  
+JSON con:
+- model  
+- title  
+- sku  
+- price  
+- image  
+- timestamp  
+
+### 📦 What was introduced
+- adapter pattern  
+- HTML parsing  
+- price normalization  
+- typed data model  
+
+---
+
+# 3 — Historical Persistence (CSV/JSON Pipeline)  
+**Issue:** #4
+
+### 🎯 Goal  
+Convertir snapshots en un dataset histórico.
+
+### ▶️ Run  
+```bash
+uv run python -m scraper.cli run
+```
+
+### 📤 Output  
+```
+data/processed/prices.json
+data/processed/prices.csv
+```
+
+### 📦 What was introduced
+- history merge  
+- deduplication  
+- reproducible exports  
+- storage layer  
+
+Ahora el proyecto se comporta como un **data pipeline**, no un script.
+
+---
+
+# 4 — Download & Cache Product Images Locally  
+**Issue:** #5
+
+### 🎯 Goal  
+Hacer los reportes independientes de internet.
+
+### ▶️ Run  
+```bash
+uv run python -m scraper.cli run
+```
+
+### 📤 Output  
+```
+assets/images/
+```
+
+Y `image_path` dentro del dataset.
+
+### 📦 What was introduced
+- media pipeline  
+- cache strategy  
+- deterministic assets  
+
+---
+
+# 5 — Generate the HTML Dashboard (Chart.js)  
+**Issue:** #6
+
+### 🎯 Goal  
+Convertir el histórico en un producto visual.
+
+### ▶️ Run  
+```bash
+uv run python -m scraper.cli run
+```
+
+### 📤 Output  
+```
+reports/index.html
+```
+
+### 📊 Dashboard includes
+- latest price per model  
+- delta vs previous  
+- timeline graph  
+- cached images  
+- last update timestamp  
+
+Ahora stakeholders pueden ver el sistema funcionando.
+
+---
+
+# 6 — Automated Tests (Normalization & Dedupe)  
+**Issue:** #7
+
+### 🎯 Goal  
+Garantizar la corrección de los datos.
+
+### ▶️ Run  
+```bash
+uv run pytest -q
+```
+
+### 🧪 Tests cover
+- European price parsing  
+- duplicate detection  
+
+### 📦 What was introduced
+- repeatability  
+- trust in the pipeline  
+- CI readiness  
+
+---
+
+# 7 — Dockerized Execution  
+**Issue:** #8
+
+### 🎯 Goal  
+Ejecutar todo con un solo comando, en cualquier sitio.
+
+### ▶️ Build  
+```bash
+docker build -t iphone-monitor .
+```
+
+### ▶️ Run  
+```bash
+docker run --rm -v "$(pwd):/app" iphone-monitor
+```
+
+### 📤 Output  
+Los mismos artefactos:
+- CSV  
+- JSON  
+- images  
+- HTML report  
+
+Ahora el proyecto es **portable**.
+
+---
+
+# 8 — Automation: Local Dev Loop + GitHub Actions  
+**Issue:** #9
+
+### 🎯 Goal  
+Eliminar la ejecución manual.
+
+---
+
+## 🖥️ Local development loop (visual)
+
+Corre cada 2 minutos:
+
+- tests  
+- scraper  
+- report generation  
 
 ```powershell
-$ErrorActionPreference = "Stop"
-
-while ($true) {
-    Write-Host "======================================="
-    Write-Host "DEV LOOP @ $(Get-Date -Format u)"
-    Write-Host "======================================="
-
-    Write-Host "[1/3] Sync deps..."
-    uv sync
-
-    Write-Host "[2/3] Running tests..."
-    uv run pytest -q
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[x] Tests failed. Fix before next run." -ForegroundColor Red
-        exit 1
-    }
-
-    Write-Host "[3/3] Running pipeline..."
-    uv run python -m scraper.cli run
-
-    Write-Host "Sleeping 120 seconds..."
-    Start-Sleep -Seconds 120
-}
-
-# Run it (VS Code terminal)
 powershell -ExecutionPolicy Bypass -File scripts/dev_loop.ps1
-
-# Stop it anytime with Ctrl + C.
 ```
 
----
-
-## 8.2 Remote automation (GitHub Actions)
-
-### File: `.github/workflows/scheduled.yml`
-
-This workflow:
-
-- syncs dependencies with uv  
-- runs tests  
-- runs the pipeline  
-- uploads outputs as artifacts  
-
-```yaml
-name: scheduled-pipeline
-
-on:
-  workflow_dispatch: {}
-  schedule:
-    - cron: "*/5 * * * *"
-
-jobs:
-  run-pipeline:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: Install Python
-        run: uv python install 3.12
-
-      - name: Sync deps
-        run: uv sync
-
-      - name: Run tests
-        run: uv run pytest -q
-
-      - name: Run pipeline
-        run: uv run python -m scraper.cli run
-
-      - name: Upload artifacts (CSV/JSON/HTML/images)
-        uses: actions/upload-artifact@v4
-        with:
-          name: iphone-monitor-output
-          path: |
-            data/processed/prices.csv
-            data/processed/prices.json
-            reports/index.html
-            reports/styles.css
-            assets/images
-          if-no-files-found: warn
-```
+Puedes ver los archivos actualizándose en VS Code.
 
 ---
 
-## 🔎 How to verify it works
+## ☁️ GitHub Actions schedule
 
-### Manual (instant)
-GitHub → Actions → **scheduled-pipeline** → **Run workflow**
+Corre automáticamente desde `main`.
 
-### Scheduled
-Wait a few minutes and check the Actions list.  
-Note: schedule runs only from the default branch (`main`).
+Pipeline:
+
+- install  
+- pytest  
+- run scraper  
+- upload artifacts  
+
+También puedes lanzarlo manualmente desde **Actions → Run workflow**.
 
 ---
 
-## ✅ What we achieved
+# 🎉 Final System Capability
 
-✔ Fast local iteration loop (every 2 minutes) visible in VS Code  
-✔ Automated validation via tests before each run  
-✔ Scheduled remote runs in GitHub Actions  
-✔ Reproducible outputs downloadable as artifacts  
-✔ Professional automation workflow without auto-committing generated files  
+Al terminar el paso 8 tienes:
+
+- modular architecture  
+- real scraping  
+- history  
+- visual dashboard  
+- local assets  
+- tests  
+- docker  
+- automation  
+- reproducibility  
+- portfolio-level engineering  
